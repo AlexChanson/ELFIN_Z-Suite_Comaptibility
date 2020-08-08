@@ -3,7 +3,7 @@ from datetime import datetime
 import os
 import argparse
 
-verbose = True
+verbose = False
 
 # Settings table : match between Z-Suite gcode header and expected silce.conf
 master_table = [("Pix per mm X", "xppm", float),
@@ -137,10 +137,10 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Process a Z-Suite CWS archive to make it compatible with the Nova3D Elfin Printer')
     parser.add_argument('--file', required=True, help='The .cws print file to modify')
-    #args = parser.parse_args()
-    #test_file_input = args.file
+    args = parser.parse_args()
+    test_file_input = args.file
 
-    test_file_input = 'd:\\calibration_cube_zsuite.cws'
+    #test_file_input = 'd:\\calibration_cube_zsuite.cws'
     
     canonical_name = None
     
