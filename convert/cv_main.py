@@ -220,7 +220,7 @@ if __name__ == '__main__':
             gcode_out.write("M18 ;Disable Motors\n")
             gcode_out.write("M106 S0\n")
             # Compute the height to raise to the top with 5mm margin instead of lifting by 80 like a moron
-            lift_height = (130 - (config_data['thickness'] * config_data['layers_num'])) - 5
+            lift_height = 150 - (config_data['thickness'] * config_data['layers_num'])
             if lift_height < 0:
                 raise ValueError
             gcode_out.write(f"G1 Z{lift_height}\n")
@@ -228,7 +228,11 @@ if __name__ == '__main__':
 
 
     # Building new archive
-    out_zip = test_file_input + "_clean.cws"
+    if test_file_input.endswith('.cws') or test_file_input.endswith('.CWS'):
+        out_zip = test_file_input[:-4] + "_clean.cws"
+    else:
+        out_zip = test_file_input + "_clean.cws"
+
 
     with ZipFile(out_zip, mode="w") as zip:
         # Put conf file in
