@@ -217,13 +217,13 @@ if __name__ == '__main__':
             # Write Slices
             gcode_out.write("\n".join(gen_slices(config_data, extra_data)))
             # Write end
-            gcode_out.write("M18 ;Disable Motors\n")
             gcode_out.write("M106 S0\n")
             # Compute the height to raise to the top with 5mm margin instead of lifting by 80 like a moron
             lift_height = 150 - (config_data['thickness'] * config_data['layers_num'])
             if lift_height < 0:
                 raise ValueError
             gcode_out.write(f"G1 Z{lift_height}\n")
+            gcode_out.write("M18 ;Disable Motors\n")
             gcode_out.write(";<Completed>\n")
 
 
