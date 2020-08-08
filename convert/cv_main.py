@@ -1,4 +1,4 @@
-from zipfile import ZipFile
+from zipfile import ZipFile, ZIP_DEFLATED
 from datetime import datetime
 import os
 import argparse
@@ -52,7 +52,7 @@ def gen_header(conf, extra, timestr):
         ";(Use Mainlift GCode Tab  = False)",
         f";(Anti Aliasing           = {extra['aa']})",
         f";(Anti Aliasing Value     = {extra['aa_v']} )",
-        f";(Z Lift Feed Rate        = {extra['lift_feed']} mm/s )",
+        f";(Z Lift Feed Rate        = {extra['lift_feed']} mm/s )", # All feeds are wrong should be in mm/minute but original files are produces with mm/s
         f";(Z Bottom Lift Feed Rate = {40.0} mm/s )",
         f";(Z Lift Retract Rate     = {extra['lift_retract']} mm/s )",
         f";(Flip X                  = {extra['flip_x']})",
@@ -91,9 +91,13 @@ def gen_slices(conf, extra):
         lines.append(f";<Delay> {conf['head_layers_expo_ms']}")
         lines.append("M106 S0")
         lines.append(";<Slice> Blank")
+
+        # Reproducing original behavior might have to do with cooling
+        # We go very slow and cool for at least 30 seconds
         lines.append(f"G1 Z{lift} F20")
         lines.append(f"G1 Z-{down} F20")
-        lines.append(";<Delay> 10000")
+        lines.append(";<Delay> 34000")
+
         lines.append("")
 
         slice_idx += 1
@@ -105,7 +109,10 @@ def gen_slices(conf, extra):
         lines.append("M106 S0\n;<Slice> Blank")
         lines.append(f"G1 Z{lift} F{extra['lift_feed']}")
         lines.append(f"G1 Z-{down} F{extra['lift_retract']}")
-        lines.append(f";<Delay> {extra['wait']}")
+        # The printer is dumb can't wait until gcode is done to execute delay we have to anticipate for it
+        # extra blank time (at least 500 ms to give me some margin) + time to lift + time to go back for next exposition
+        delay = max(extra['wait'], 500) + int(((int(lift)/(extra['lift_feed']/60)) + (int(lift)/(extra['lift_retract']/60)))*1000)
+        lines.append(f";<Delay> {delay}")
         lines.append("")
 
         slice_idx += 1
@@ -133,7 +140,7 @@ if __name__ == '__main__':
     #args = parser.parse_args()
     #test_file_input = args.file
 
-    test_file_input = 'd:\\Hero_Forge_Explorer_Demo.cws'
+    test_file_input = 'd:\\calibration_cube_zsuite.cws'
     
     canonical_name = None
     
@@ -192,6 +199,8 @@ if __name__ == '__main__':
 
 
     outlines.append("lift_when_finished      = 80")
+    with open("slice_tmp.conf", mode="w") as out:
+        out.write('\n'.join(outlines) + '\n')
     
     # Generating Gcode
     with ZipFile(test_file_input, mode="r") as zip_input:
@@ -210,7 +219,8 @@ if __name__ == '__main__':
             # Write end
             gcode_out.write("M18 ;Disable Motors\n")
             gcode_out.write("M106 S0\n")
-            lift_height = (140 - (config_data['thickness'] * config_data['layers_num'])) - 5
+            # Compute the height to raise to the top with 5mm margin instead of lifting by 80 like a moron
+            lift_height = (130 - (config_data['thickness'] * config_data['layers_num'])) - 5
             if lift_height < 0:
                 raise ValueError
             gcode_out.write(f"G1 Z{lift_height}\n")
@@ -218,17 +228,14 @@ if __name__ == '__main__':
 
 
     # Building new archive
-    with open("slice_tmp.conf", mode="w") as out:
-        out.write('\n'.join(outlines) + '\n')
-
     out_zip = test_file_input + "_clean.cws"
 
     with ZipFile(out_zip, mode="w") as zip:
         # Put conf file in
-        zip.write("slice_tmp.conf", arcname="slice.conf")
+        zip.write("slice_tmp.conf", arcname="slice.conf", compress_type=ZIP_DEFLATED)
         
         # Put GCODE in
-        zip.write(canonical_name + "_tmp.gcode", arcname=canonical_name + ".gcode")
+        zip.write(canonical_name + "_tmp.gcode", arcname=canonical_name + ".gcode", compress_type=ZIP_DEFLATED)
         
         #Copy images
         with ZipFile(test_file_input, 'r') as zin:
