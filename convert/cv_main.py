@@ -248,5 +248,11 @@ if __name__ == '__main__':
                 if item.filename.endswith("png"):
                     zip.writestr(item, buffer)
 
-    if not verbose: os.remove("slice_tmp.conf")
-    if not verbose: os.remove(canonical_name + "_tmp.gcode")
+    if not verbose:
+        os.remove("slice_tmp.conf")
+        os.remove(canonical_name + "_tmp.gcode")
+        os.remove(test_file_input)
+        os.rename(out_zip, test_file_input)
+        print("Done, your file is ready for the Elfin.")
+    else:
+        print("Done, all temp files kept for debug.")
