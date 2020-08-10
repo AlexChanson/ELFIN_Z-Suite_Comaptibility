@@ -71,7 +71,7 @@ def gen_header(conf, extra, timestr):
         "G21 ;Set units to be mm",
         "G91 ;Relative Positioning",
         "M17 ;Enable motors",
-        "<Slice> Blank",
+        "<Slice> Blank", # This is probably missing the ; but it's also probably useless anyway
         "M106 S0",
         ""
     ]
@@ -96,7 +96,11 @@ def gen_slices(conf, extra):
         # We go very slow and cool for at least 30 seconds
         lines.append(f"G1 Z{lift} F20")
         lines.append(f"G1 Z-{down} F20")
-        lines.append(";<Delay> 34000")
+        delay = 10000 + int(((int(lift) / (20. / 60.)) + (int(lift) / (20. / 60.))) * 1000)
+        # OverHeat Safety
+        delay = max(delay, conf['head_layers_expo_ms'])
+        print(f"[DEBUG] bottom time is {delay} ms")
+        lines.append(f";<Delay> {delay}")
 
         lines.append("")
 
@@ -112,6 +116,8 @@ def gen_slices(conf, extra):
         # The printer is dumb can't wait until gcode is done to execute delay we have to anticipate for it
         # extra blank time (at least 500 ms to give me some margin) + time to lift + time to go back for next exposition
         delay = max(extra['wait'], 500) + int(((int(lift)/(extra['lift_feed']/60)) + (int(lift)/(extra['lift_retract']/60)))*1000)
+        # OverHeat Safety
+        delay = max(delay, 10000)
         lines.append(f";<Delay> {delay}")
         lines.append("")
 
@@ -217,7 +223,7 @@ if __name__ == '__main__':
             # Write Slices
             gcode_out.write("\n".join(gen_slices(config_data, extra_data)))
             # Write end
-            gcode_out.write("M106 S0\n")
+            gcode_out.write("\nM106 S0\n")
             # Compute the height to raise to the top with 5mm margin instead of lifting by 80 like a moron
             lift_height = 150 - (config_data['thickness'] * config_data['layers_num'])
             if lift_height < 0:
