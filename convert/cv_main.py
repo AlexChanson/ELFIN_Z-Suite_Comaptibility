@@ -16,7 +16,7 @@ master_table = [("Pix per mm X", "xppm", float),
                 ("Layer Time", "layers_expo_ms", int),
                 ("Bottom Layers Time", "head_layers_expo_ms", int),
                 ("Blanking Layer Time", "wait_before_expo_ms", int),
-                ("Lift Distance", "lift_distance", int),
+                ("Lift Distance", "lift_distance", float),
                 ("Z Lift Feed Rate", "lift_up_speed", int),
                 ("Z Lift Retract Rate", "lift_down_speed", int)]
 
